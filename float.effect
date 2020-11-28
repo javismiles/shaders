@@ -1,0 +1,68 @@
+
+// Variation of the Shake Effect created by Charles Fettinger (https://github.com/Oncorporation)  2/2019
+// Code modified to produce a floating effect
+// Needs still to add crop so that what goes beyond original borders gets cropped
+
+uniform float4x4 ViewProj;
+uniform texture2d image;
+uniform float local_time;
+
+uniform float speed = 0.79;
+uniform float cucu = 0.19;
+
+sampler_state textureSampler {
+	Filter    = Linear;
+	AddressU  = Border;
+	AddressV  = Border;
+	BorderColor = 00000000;
+};
+
+struct VertData {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertData mainTransform(VertData v_in)
+{
+	VertData vert_out;
+
+	float3 pos = v_in.pos.xyz;
+
+	float amplitude=50.0;
+	float speedmove=0.5;
+	float scaling=0.6; // less than 1 scales up, more than 1 scales down, but from top left corner always
+
+    // esto es offset de posicion
+	float ori = local_time * speedmove;	
+
+	float t=sin(ori)*amplitude;
+	float t2=sin(ori*1.5)*amplitude;
+
+	float off_x=0.0-t/1.0; 
+	float off_y=0.0-t2/1.0;
+	float off_z=0.0;
+
+	float3 newpos = float3(v_in.pos.x+off_x, v_in.pos.y+off_y, v_in.pos.z+off_z);
+	vert_out.pos = mul(float4(newpos,1), ViewProj);
+
+	v_in.uv.x=v_in.uv.x+0.4;
+	v_in.uv.y=v_in.uv.y+0.4;
+
+	vert_out.uv = v_in.uv * scaling; 
+	return vert_out;
+
+}
+
+float4 mainImage(VertData v_in) : TARGET
+{
+	return image.Sample(textureSampler, v_in.uv);
+}
+
+technique Draw
+{
+	pass
+	{
+		vertex_shader = mainTransform(v_in);
+		pixel_shader  = mainImage(v_in);
+	}
+}
